@@ -94,7 +94,6 @@
         width="100%"
         height="600px"
         frameborder="0"
-        @load="onIframeLoad"
       ></iframe>
       <el-button @click="saveEditImg">保存</el-button>
     </el-dialog>
@@ -122,8 +121,8 @@ export default {
       editorImageData: '', // 存储base64图片数据
       base64: '',
       iframeVisible: true, // 控制 iframe 对话框显示
-      // iframeSrc: 'http://192.168.0.105:8081/' // iframe 的源，初始为空白页
-      iframeSrc: 'http://localhost:8081/' // iframe 的源，初始为空白页
+      iframeSrc: 'http://192.168.1.6:8080/' // iframe 的源，初始为空白页
+      // iframeSrc: 'http://localhost:8080/' // iframe 的源，初始为空白页
     };
   },
   methods: {
@@ -143,17 +142,31 @@ export default {
         text: '图片处理中...',
         background: 'rgba(0, 0, 0, 0.7)'
       });
-  
+      this.openEditor()
       try {
         // 将图片转换为base64
         const file = files[0].raw;
-        // const base64 = await this.fileToBase64(file);
+        this.base64 = await this.fileToBase64(file); // 将本地文件转换为base64并存储
+        this.editorImageData = this.base64; // 将base64数据赋值给editorImageData
+        setTimeout(() => {
+        if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
+        console.log('editorImageData:', this.editorImageData);
+        
+        this.$refs.imageIframe.contentWindow.postMessage(
+          { type: 'imageData', data: this.editorImageData },
+          '*' // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
+        );
+        console.log('Image data sent to iframe via postMessage');
+      }
+    }, 300)
+
+        return
         // 上传处理
         const formData = new FormData();
         formData.append('images', file);
         formData.append('imageType', this.imageType);
         formData.append('compressImage', this.compressImage);
-  
+
         const response = await this.$http.post('/picture/upload-single-image', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
@@ -165,7 +178,7 @@ export default {
           this.resultPreview = true;
           this.resultUrl = response[0];
           console.log('处理后的图片URL:', this.resultUrl);
-          this.editorImageData = await this.fileToBase64(this.resultUrl); // 等待 Promise 完成
+          this.editorImageData = await this.fileToBase64(this.resultUrl); // 这行不再需要，因为我们已经有了本地图片的base64
           this.$message.success('图片处理成功');
         }
       } catch (error) {
@@ -175,27 +188,37 @@ export default {
         loadingInstance.close();
       }
     },
-    async fileToBase64(url) {
+    async fileToBase64(file) {
       return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous'; // 允许跨域
-        img.src = url;
-  
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-  
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-  
-          const base64 = canvas.toDataURL('image/png'); // 转换为 Base64
-          resolve(base64);
-        };
-  
-        img.onerror = (error) => {
-          reject(error);
-        };
+        // 如果传入的是 File 对象
+        if (file instanceof File) {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(file);
+        } else if (typeof file === 'string') { // 如果传入的是 URL 字符串
+          const img = new Image();
+          img.crossOrigin = 'Anonymous'; // 允许跨域
+          img.src = file;
+    
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+    
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+    
+            const base64 = canvas.toDataURL('image/png'); // 转换为 Base64
+            resolve(base64);
+          };
+    
+          img.onerror = (error) => {
+            reject(error);
+          };
+        } else {
+          reject(new Error('Invalid input type. Expected File or URL string.'));
+        }
       });
     },
     openEditor() {
@@ -207,11 +230,14 @@ export default {
       // 设置 iframe 的 src，这里可以是一个本地 HTML 文件或者一个外部 URL
       // 例如：this.iframeSrc = '/static/iframe-editor.html';
       // 为了演示 postMessage，我们先设置为 about:blank，然后在 load 事件中发送数据
-      this.iframeSrc = 'about:blank'; 
+      this.iframeSrc = 'http://192.168.1.6:8080/'; // 直接设置 iframe 的源
+      // this.iframeSrc = 'about:blank'; // 移除这行，直接设置正确的源
     },
     onIframeLoad() {
       // 当 iframe 加载完成后，通过 postMessage 发送数据
       if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
+        console.log('editorImageData:', this.editorImageData);
+        
         this.$refs.imageIframe.contentWindow.postMessage(
           { type: 'imageData', data: this.editorImageData },
           '*' // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
@@ -244,6 +270,7 @@ export default {
     openEditor() {
       this.editorImageUrl = this.resultUrl;
       this.editorVisible = true;
+      this.openIframeEditor(); // 调用 openIframeEditor 方法
     },
     
     onEditorCompleted(editedImageUrl) {
