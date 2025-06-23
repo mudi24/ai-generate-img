@@ -87,6 +87,7 @@
       title="Iframe 图片编辑器"
       width="90%"
       :append-to-body="true"
+       @before-close="handleDialogClose"
     >
       <iframe
         ref="imageIframe"
@@ -96,6 +97,18 @@
         frameborder="0"
       ></iframe>
       <el-button @click="saveEditImg">保存</el-button>
+    </el-dialog>
+    <el-dialog
+      :visible.sync="savePromptVisible"
+      title="提示"
+      width="30%"
+      :before-close="handleSavePromptClose"
+    >
+      <span>您编辑的图片还没有保存，是否要关闭？</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="handleSavePromptCancel">取消</el-button>
+        <el-button type="primary" @click="handleSavePromptConfirm">保存并关闭</el-button>
+      </span>
     </el-dialog>
   </div>
 
@@ -121,13 +134,49 @@ export default {
       editorImageData: '', // 存储base64图片数据
       base64: '',
       iframeVisible: true, // 控制 iframe 对话框显示
-      iframeSrc: 'http://192.168.1.6:8080/' // iframe 的源，初始为空白页
-      // iframeSrc: 'http://localhost:8080/' // iframe 的源，初始为空白页
+      // iframeSrc: 'http://192.168.1.6:8080/' // iframe 的源，初始为空白页
+      iframeSrc: 'http://10.34.32.226:8081/', // iframe 的源，初始为空白页
+      savePromptVisible: false, // 新增：控制保存提示对话框的显示
     };
   },
   methods: {
+    handleDialogClose(done) {
+      // 在这里执行关闭Dialog之前的操作
+      console.log('Dialog is about to close');
+      this.savePromptVisible = true; // 显示保存提示对话框
+      // done 是一个必须被调用的函数，用于关闭 Dialog
+      // 你可以传递一个布尔值给 done 来决定是否关闭 Dialog
+      // done(false) 会阻止 Dialog 的关闭
+      done(false);
+    }
+    // 处理编辑器对话框关闭事件
+    handleEditorClose() {
+      // 在这里检查是否有未保存的更改，并显示保存提示对话框
+      if (this.hasUnsavedChanges) { // 假设你有一个方法来检查是否有未保存的更改
+        this.savePromptVisible = true;
+      }
+    },
+
+    // 处理保存提示对话框的关闭事件
+    handleSavePromptClose(done) {
+      // 这里不需要执行任何操作，因为我们会在用户点击按钮时处理关闭逻辑
+      done();
+    },
+
+    // 处理取消按钮点击事件
+    handleSavePromptCancel() {
+      this.savePromptVisible = false; // 隐藏保存提示对话框
+    },
+
+    // 处理确认按钮点击事件
+    handleSavePromptConfirm() {
+      // 在这里执行保存操作，然后关闭编辑器对话框和保存提示对话框
+      this.saveEditImg(); // 假设你有一个方法来保存更改
+      this.editorVisible = false;
+      this.savePromptVisible = false;
+    },
     saveEditImg(){
-      
+      // window.postMessage
     },
     async handleUpload() {
       const files = this.$refs.upload.uploadFiles;
@@ -158,7 +207,7 @@ export default {
         );
         console.log('Image data sent to iframe via postMessage');
       }
-    }, 300)
+    }, 1000)
 
         return
         // 上传处理
@@ -230,8 +279,8 @@ export default {
       // 设置 iframe 的 src，这里可以是一个本地 HTML 文件或者一个外部 URL
       // 例如：this.iframeSrc = '/static/iframe-editor.html';
       // 为了演示 postMessage，我们先设置为 about:blank，然后在 load 事件中发送数据
-      this.iframeSrc = 'http://192.168.1.6:8080/'; // 直接设置 iframe 的源
-      // this.iframeSrc = 'about:blank'; // 移除这行，直接设置正确的源
+      // this.iframeSrc = 'http://192.168.1.6:8080/'; // 直接设置 iframe 的源
+      this.iframeSrc = 'http://10.34.32.226:8081/'; // 移除这行，直接设置正确的源
     },
     onIframeLoad() {
       // 当 iframe 加载完成后，通过 postMessage 发送数据
