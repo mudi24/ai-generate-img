@@ -83,11 +83,11 @@
         <!-- 删除图片编辑器对话框 -->
       </div>
     <el-dialog
-      :visible.sync="iframeVisible"
+      :visible="iframeVisible"
       title="Iframe 图片编辑器"
       width="90%"
       :append-to-body="true"
-       @before-close="handleDialogClose"
+      :before-close="handleDialogClose"
     >
       <iframe
         ref="imageIframe"
@@ -135,7 +135,7 @@ export default {
       base64: '',
       iframeVisible: true, // 控制 iframe 对话框显示
       // iframeSrc: 'http://192.168.1.6:8080/' // iframe 的源，初始为空白页
-      iframeSrc: 'http://10.34.32.226:8081/', // iframe 的源，初始为空白页
+      iframeSrc: 'http://10.34.32.211:8081/', // iframe 的源，初始为空白页
       savePromptVisible: false, // 新增：控制保存提示对话框的显示
     };
   },
@@ -148,7 +148,7 @@ export default {
       // 你可以传递一个布尔值给 done 来决定是否关闭 Dialog
       // done(false) 会阻止 Dialog 的关闭
       done(false);
-    }
+    },
     // 处理编辑器对话框关闭事件
     handleEditorClose() {
       // 在这里检查是否有未保存的更改，并显示保存提示对话框
@@ -172,11 +172,35 @@ export default {
     handleSavePromptConfirm() {
       // 在这里执行保存操作，然后关闭编辑器对话框和保存提示对话框
       this.saveEditImg(); // 假设你有一个方法来保存更改
-      this.editorVisible = false;
+      this.iframeVisible = false;
       this.savePromptVisible = false;
     },
     saveEditImg(){
       // window.postMessage
+      if(this.savePromptVisible){
+        window.addEventListener('message', async (event) => {
+      console.log('111event', event.data);
+
+			// 检查消息来源以提高安全性
+			// if (event.origin !== 'http://192.168.0.105:8080/') return;
+
+			if (event.data.editData) {
+				const imageData = event.data.editData;
+				console.log('111Received image data in iframe:', imageData);
+				// 在这里处理接修改后的图片数据，例如显示在 <img> 标签中
+				
+			}
+		});
+      }
+     
+      if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
+        console.log('saveEditImg:');
+        
+        this.$refs.imageIframe.contentWindow.postMessage(
+          { type: 'saveImage'  },
+          '*' // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
+        );
+      }
     },
     async handleUpload() {
       const files = this.$refs.upload.uploadFiles;
@@ -280,7 +304,7 @@ export default {
       // 例如：this.iframeSrc = '/static/iframe-editor.html';
       // 为了演示 postMessage，我们先设置为 about:blank，然后在 load 事件中发送数据
       // this.iframeSrc = 'http://192.168.1.6:8080/'; // 直接设置 iframe 的源
-      this.iframeSrc = 'http://10.34.32.226:8081/'; // 移除这行，直接设置正确的源
+      // this.iframeSrc = 'http://10.34.32.226:8081/'; // 移除这行，直接设置正确的源
     },
     onIframeLoad() {
       // 当 iframe 加载完成后，通过 postMessage 发送数据
