@@ -1,36 +1,20 @@
 <template>
-  <div class="container">  <!-- 添加container类 -->
+  <div class="container"> <!-- 添加container类 -->
     <div class="section image-section">
       <h3>单张图片处理</h3>
-      <el-upload
-        ref="upload"
-        action="#"
-        list-type="picture-card"
-        :auto-upload="false"
-        :limit="1"
-        >
-          <i slot="default" class="el-icon-plus"></i>
-          <div slot="file" slot-scope="{file}">
-            <img
-              class="el-upload-list__item-thumbnail"
-              :src="file.url" alt=""
-            >
-            <span class="el-upload-list__item-actions">
-              <span
-                class="el-upload-list__item-preview"
-                @click="handlePictureCardPreview(file)"
-              >
-                <i class="el-icon-zoom-in"></i>
-              </span>              
-              <span
-                v-if="!disabled"
-                class="el-upload-list__item-delete"
-                @click="handleRemove(file)"
-              >
-                <i class="el-icon-delete"></i>
-              </span>
+      <el-upload ref="upload" action="#" list-type="picture-card" :auto-upload="false" :limit="1">
+        <i slot="default" class="el-icon-plus"></i>
+        <div slot="file" slot-scope="{file}">
+          <img class="el-upload-list__item-thumbnail" :src="file.url" alt="">
+          <span class="el-upload-list__item-actions">
+            <span class="el-upload-list__item-preview" @click="handlePictureCardPreview(file)">
+              <i class="el-icon-zoom-in"></i>
             </span>
-          </div>
+            <span v-if="!disabled" class="el-upload-list__item-delete" @click="handleRemove(file)">
+              <i class="el-icon-delete"></i>
+            </span>
+          </span>
+        </div>
       </el-upload>
       <div class="upload-controls">
         <el-radio v-model="imageType" label="translator">图片翻译</el-radio>
@@ -41,69 +25,35 @@
       <el-dialog :visible.sync="dialogVisible">
         <img width="100%" :src="dialogImageUrl" alt="">
       </el-dialog>
-      
+
       <!-- 新增图片预览区域 -->
-       
+
       <div class="preview-section" v-if="resultPreview">
         <h3>处理结果预览</h3>
         <div class="preview-images">
-          <el-image
-            :src="resultUrl"
-            :preview-src-list="[resultUrl]"
-            fit="contain"
-            class="preview-image"
-          >
+          <el-image :src="resultUrl" :preview-src-list="[resultUrl]" fit="contain" class="preview-image">
             <div slot="error" class="image-error">
               <i class="el-icon-picture-outline"></i>
               <span>图片加载失败</span>
             </div>
           </el-image>
-          <el-button 
-            type="primary" 
-            @click="openEditor"
-            style="margin-left: 20px;"
-          >
+          <el-button type="primary" @click="openEditor" style="margin-left: 20px;">
             编辑图片
           </el-button>
         </div>
         <!-- 将编辑器对话框移到预览区域下方 -->
-        <el-dialog 
-          :visible.sync="editorVisible" 
-          title="图片编辑器" 
-          width="80%"
-          :append-to-body="true"
-        >
-          <ImageEditor 
-            :editorImageData="editorImageData" 
-            @error="handleEditorError"
-            @completed="onEditorCompleted"
-          />
+        <el-dialog :visible.sync="editorVisible" title="图片编辑器" width="80%" :append-to-body="true">
+          <ImageEditor :editorImageData="editorImageData" @error="handleEditorError" @completed="onEditorCompleted" />
         </el-dialog>
       </div>
-        <!-- 删除图片编辑器对话框 -->
-      </div>
-    <el-dialog
-      :visible="iframeVisible"
-      title="Iframe 图片编辑器"
-      width="90%"
-      :append-to-body="true"
-      :before-close="handleDialogClose"
-    >
-      <iframe
-        ref="imageIframe"
-        :src="iframeSrc"
-        width="100%"
-        height="600px"
-        frameborder="0"
-      ></iframe>
+      <!-- 删除图片编辑器对话框 -->
+    </div>
+    <el-dialog :visible="iframeVisible" title="Iframe 图片编辑器" width="90%" :append-to-body="true"
+      :before-close="handleDialogClose">
+      <iframe ref="imageIframe" :src="iframeSrc" width="100%" height="600px" frameborder="0"></iframe>
       <el-button @click="saveEditImg">保存</el-button>
     </el-dialog>
-    <el-dialog
-      :visible.sync="savePromptVisible"
-      title="提示"
-      width="30%"
-      :before-close="handleSavePromptClose"
-    >
+    <el-dialog :visible.sync="savePromptVisible" title="提示" width="30%" :before-close="handleSavePromptClose">
       <span>您编辑的图片还没有保存，是否要关闭？</span>
       <span slot="footer" class="dialog-footer">
         <el-button @click="handleSavePromptCancel">取消</el-button>
@@ -134,8 +84,8 @@ export default {
       editorImageData: '', // 存储base64图片数据
       base64: '',
       iframeVisible: true, // 控制 iframe 对话框显示
-      // iframeSrc: 'http://192.168.1.6:8080/' // iframe 的源，初始为空白页
-      iframeSrc: 'http://10.34.32.211:8081/', // iframe 的源，初始为空白页
+      // iframeSrc: 'http://192.168.1.8:8080/',   // iframe 的源，初始为空白页
+      iframeSrc: 'http://10.34.44.203:8080/', // iframe 的源，初始为空白页
       savePromptVisible: false, // 新增：控制保存提示对话框的显示
     };
   },
@@ -175,30 +125,30 @@ export default {
       this.iframeVisible = false;
       this.savePromptVisible = false;
     },
-    saveEditImg(){
+    saveEditImg() {
       // window.postMessage
-      if(this.savePromptVisible){
+      if (this.savePromptVisible) {
         window.addEventListener('message', async (event) => {
-      console.log('111event', event.data);
+          console.log('111event', event.data);
 
-			// 检查消息来源以提高安全性
-			// if (event.origin !== 'http://192.168.0.105:8080/') return;
+          // 检查消息来源以提高安全性
+          if (event.origin !== this.iframeSrc) return;
 
-			if (event.data.editData) {
-				const imageData = event.data.editData;
-				console.log('111Received image data in iframe:', imageData);
-				// 在这里处理接修改后的图片数据，例如显示在 <img> 标签中
-				
-			}
-		});
+          if (event.data.editData) {
+            const imageData = event.data.editData;
+            console.log('111Received image data in iframe:', imageData);
+            // 在这里处理接修改后的图片数据，例如显示在 <img> 标签中
+
+          }
+        });
       }
-     
+
       if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
         console.log('saveEditImg:');
-        
+
         this.$refs.imageIframe.contentWindow.postMessage(
-          { type: 'saveImage'  },
-          '*' // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
+          { type: 'saveImage' },
+          this.iframeSrc // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
         );
       }
     },
@@ -208,7 +158,7 @@ export default {
         this.$message.warning('请先选择图片');
         return;
       }
-      
+
       // 显示加载遮罩
       const loadingInstance = this.$loading({
         lock: true,
@@ -222,16 +172,16 @@ export default {
         this.base64 = await this.fileToBase64(file); // 将本地文件转换为base64并存储
         this.editorImageData = this.base64; // 将base64数据赋值给editorImageData
         setTimeout(() => {
-        if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
-        console.log('editorImageData:', this.editorImageData);
-        
-        this.$refs.imageIframe.contentWindow.postMessage(
-          { type: 'imageData', data: this.editorImageData },
-          '*' // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
-        );
-        console.log('Image data sent to iframe via postMessage');
-      }
-    }, 1000)
+          if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
+            console.log('editorImageData:', this.editorImageData);
+
+            this.$refs.imageIframe.contentWindow.postMessage(
+              { type: 'imageData', data: this.editorImageData },
+              this.iframeSrc // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
+            );
+            console.log('Image data sent to iframe via postMessage');
+          }
+        }, 1000)
 
         return
         // 上传处理
@@ -273,19 +223,19 @@ export default {
           const img = new Image();
           img.crossOrigin = 'Anonymous'; // 允许跨域
           img.src = file;
-    
+
           img.onload = () => {
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
-    
+
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-    
+
             const base64 = canvas.toDataURL('image/png'); // 转换为 Base64
             resolve(base64);
           };
-    
+
           img.onerror = (error) => {
             reject(error);
           };
@@ -310,10 +260,10 @@ export default {
       // 当 iframe 加载完成后，通过 postMessage 发送数据
       if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
         console.log('editorImageData:', this.editorImageData);
-        
+
         this.$refs.imageIframe.contentWindow.postMessage(
           { type: 'imageData', data: this.editorImageData },
-          '*' // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
+          this.iframeSrc // // 目标源，'*' 表示任何源，实际应用中应指定具体源以提高安全性
         );
         console.log('Image data sent to iframe via postMessage');
       }
@@ -345,7 +295,7 @@ export default {
       this.editorVisible = true;
       this.openIframeEditor(); // 调用 openIframeEditor 方法
     },
-    
+
     onEditorCompleted(editedImageUrl) {
       this.editorVisible = false;
       if (editedImageUrl) {
@@ -357,17 +307,19 @@ export default {
       this.$message.error(message);
       this.editorVisible = false;
     }
-  }  
+  }
 }
 
 </script>
 
 <style scoped>
 .container {
-  padding-left: 20px; /* 调整与导航栏的距离 */
+  padding-left: 20px;
+  /* 调整与导航栏的距离 */
   padding-right: 20px;
   padding-top: 20px;
 }
+
 .upload-controls {
   margin-top: 20px;
   display: flex;
@@ -375,6 +327,7 @@ export default {
   gap: 10px;
   flex-wrap: wrap;
 }
+
 /* 新增样式 */
 .preview-section {
   margin-top: 30px;
@@ -405,6 +358,7 @@ export default {
   color: #999;
   font-size: 14px;
 }
+
 .preview-image {
   max-width: 150px;
   max-height: 150px;
