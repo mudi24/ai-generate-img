@@ -83,11 +83,17 @@ export default {
       editorVisible: false,  // 控制编辑器对话框显示
       editorImageData: '', // 存储base64图片数据
       base64: '',
-      iframeVisible: true, // 控制 iframe 对话框显示
+      iframeVisible: false, // 控制 iframe 对话框显示
       // iframeSrc: 'http://192.168.1.8:8080/',   // iframe 的源，初始为空白页
-      iframeSrc: 'http://10.34.44.203:8080/', // iframe 的源，初始为空白页
+      iframeSrc: 'http://10.34.44.203:8080', // iframe 的源，初始为空白页
       savePromptVisible: false, // 新增：控制保存提示对话框的显示
     };
+  },
+  mounted() {
+    window.addEventListener('message', this.handleIframeMessage);
+  },
+  beforeDestroy() {
+    window.removeEventListener('message', this.handleIframeMessage);
   },
   methods: {
     handleDialogClose(done) {
@@ -125,24 +131,23 @@ export default {
       this.iframeVisible = false;
       this.savePromptVisible = false;
     },
-    saveEditImg() {
-      // window.postMessage
-      if (this.savePromptVisible) {
-        window.addEventListener('message', async (event) => {
-          console.log('111event', event.data);
+    handleIframeMessage(event) {
+      console.log('Received image data from iframe:', event.data);
+      // 检查消息来源以提高安全性
+      if (event.origin !== this.iframeSrc) return;
 
-          // 检查消息来源以提高安全性
-          if (event.origin !== this.iframeSrc) return;
-
-          if (event.data.editData) {
-            const imageData = event.data.editData;
-            console.log('111Received image data in iframe:', imageData);
-            // 在这里处理接修改后的图片数据，例如显示在 <img> 标签中
-
-          }
-        });
+      if (event.data.type === 'saveImageData' && event.data.editData) {
+        
+        const imageData = event.data.editData;
+        console.log('Received image data from iframe:', imageData);
+        this.resultUrl = imageData; // 将接收到的base64数据赋值给resultUrl
+        this.resultPreview = true; // 显示预览区域
+        this.$message.success('图片编辑已保存');
+        this.iframeVisible = false; // 关闭iframe对话框
+        this.savePromptVisible = false; // 关闭保存提示对话框
       }
-
+    },
+    saveEditImg() {
       if (this.$refs.imageIframe && this.$refs.imageIframe.contentWindow) {
         console.log('saveEditImg:');
 
@@ -246,15 +251,11 @@ export default {
     },
     openEditor() {
       // 直接使用已保存的base64数据
-      this.editorVisible = true;
+      // this.editorVisible = true;
+       this.openIframeEditor(); // 调用 openIframeEditor 方法
     },
     openIframeEditor() {
       this.iframeVisible = true;
-      // 设置 iframe 的 src，这里可以是一个本地 HTML 文件或者一个外部 URL
-      // 例如：this.iframeSrc = '/static/iframe-editor.html';
-      // 为了演示 postMessage，我们先设置为 about:blank，然后在 load 事件中发送数据
-      // this.iframeSrc = 'http://192.168.1.6:8080/'; // 直接设置 iframe 的源
-      // this.iframeSrc = 'http://10.34.32.226:8081/'; // 移除这行，直接设置正确的源
     },
     onIframeLoad() {
       // 当 iframe 加载完成后，通过 postMessage 发送数据
@@ -289,11 +290,6 @@ export default {
     },
     onCompleted(data) {
       console.log('Picture editor completed:', data);
-    },
-    openEditor() {
-      this.editorImageUrl = this.resultUrl;
-      this.editorVisible = true;
-      this.openIframeEditor(); // 调用 openIframeEditor 方法
     },
 
     onEditorCompleted(editedImageUrl) {
